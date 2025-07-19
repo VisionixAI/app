@@ -1,18 +1,19 @@
 {
-  "name": "cli",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "directories": {
-    "lib": "lib"
-  },  
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "name": "@visionix/cli",
+  "version": "1.0.3",
+  "description": "Zone-based computer vision CLI for smart automation",
+  "main": "bin/visionix.js",
   "bin": {
     "visionix": "./bin/visionix.js"
+  },
+  "keywords": ["computer vision", "cli", "automation", "presence detection"],
+  "author": "SreeCharan Desu",
+  "license": "MIT",
+  "files": [
+    "bin/",
+    "ml-core/"
+  ],
+  "scripts": {
+    "postinstall": "node ./bin/postinstall.js"
   }
 }
