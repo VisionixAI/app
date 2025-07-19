@@ -1,6 +1,6 @@
 {
   "name": "@visionix/cli",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Zone-based computer vision CLI for smart automation",
   "main": "bin/visionix.js",
   "bin": {
