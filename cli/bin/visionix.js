@@ -19,13 +19,15 @@ if (args.length < 1 || args.includes('--help')) {
     '      \\ V / | \\__ \\ | (_) | | | | |<  <   / ___ \\ | | ',
     '       \\_/  |_|___/_|\\___/|_| |_|_|_/\\_\\ /_/   \\_\\___|',
   ].join('\n');
-  const description = '        Welcome to the Visionix AI Command Line Interface!\n.        Streamline your workflows and leverage AI capabilities seamlessly.';
+  const description = '        Welcome to the Visionix AI Command Line Interface! Streamline your workflows and leverage AI capabilities seamlessly.';
   if (chalk) {
     console.log(chalk.cyanBright(asciiArt));
-    console.log(chalk.bold.magenta('VISIONIX AI CLI\n'));
+    console.log('\n');
+    console.log(chalk.bold.magenta('        VISIONIX AI CLI\n'));
     console.log(chalk.white(description));
   } else {
     console.log(asciiArt);
+    console.log('\n');
     console.log('        VISIONIX AI CLI\n');
     console.log(description);
   }
