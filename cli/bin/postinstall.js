@@ -1,101 +1,116 @@
-console.log("hi there")
-
-
 const { execSync } = require('child_process');
 const path = require('path');
+const { write, writeError, getLogFilePath } = require('./utils/logger');
 const fs = require('fs');
-const logFile = path.resolve(process.env.HOME || process.env.USERPROFILE || __dirname, 'visionix_postinstall.log');
+const { getVenvDir, getVenvPythonPath, getVenvPipPath, getRuntimeConfigPath } = require('./utils/paths');
 
-function logToFile(msg) {
-    try {
-        fs.appendFileSync(logFile, msg + '\n');
-    } catch (e) {
-        // ignore file write errors
-    }
+function log(msg) { write(msg); }
+function logErr(msg) { writeError(msg); }
+
+function tryCommand(cmd, desc, timeoutMs) {
+	log(`[VisionixAI] [ENTER] tryCommand: ${desc || cmd}`);
+	log(`[VisionixAI] $ ${cmd}`);
+	try {
+		execSync(cmd, { stdio: 'inherit', timeout: timeoutMs || 60000 });
+		log(`[VisionixAI] [SUCCESS] ${desc || cmd}`);
+		log(`[VisionixAI] [EXIT] tryCommand: ${desc || cmd}`);
+		return true;
+	} catch (err) {
+		logErr(`[VisionixAI] [ERROR] ${desc || cmd} failed.`);
+		if (err && err.message) logErr(`[VisionixAI] ${err.message}`);
+		log(`[VisionixAI] [EXIT] tryCommand: ${desc || cmd}`);
+		return false;
+	}
 }
 
-function flushLog(msg) {
-    process.stdout.write(msg + '\n');
-    logToFile(msg);
+function printPythonPipInstructions(reqPathHint) {
+	log('[VisionixAI] ❌ Python and pip are required to install ML dependencies.');
+	log('[VisionixAI] Install Python: https://www.python.org/downloads/');
+	log('[VisionixAI] Ensure pip is available in your PATH.');
+	if (reqPathHint) {
+		log('[VisionixAI] After installing, run:');
+		log(`    pip install -r "${reqPathHint}"`);
+	}
 }
 
-console.log('[VisionixAI] 🧠 Installing Python dependencies...');
-
-
-function flushLog(msg) {
-    process.stdout.write(msg + '\n');
-    process.stdout.write('');
+function resolveFirstSuccessful(commands) {
+	for (const { cmd, desc } of commands) {
+		if (tryCommand(cmd, desc)) return cmd; // return full invoker, e.g., 'py -3'
+	}
+	return null;
 }
 
-function tryCommand(cmd, desc, timeoutMs = 60000) {
-    flushLog(`[VisionixAI] [ENTER] tryCommand: ${desc || cmd}`);
-    flushLog(`\n[VisionixAI] $ ${cmd}`);
-    try {
-        flushLog(`[VisionixAI] [RUNNING] ${cmd}`);
-        const output = execSync(cmd, { stdio: 'inherit', timeout: timeoutMs });
-        flushLog(`[VisionixAI] [SUCCESS] ${cmd}`);
-        if (desc) flushLog(`[VisionixAI] ${desc} succeeded.`);
-        flushLog(`[VisionixAI] [EXIT] tryCommand: ${desc || cmd}`);
-        return true;
-    } catch (err) {
-        flushLog(`[VisionixAI] [ERROR] ${desc || cmd} failed.`);
-        if (err.stdout) flushLog('[VisionixAI] [STDOUT] ' + err.stdout.toString());
-        if (err.stderr) flushLog('[VisionixAI] [STDERR] ' + err.stderr.toString());
-        flushLog(`[VisionixAI] [EXIT] tryCommand: ${desc || cmd}`);
-        return false;
-    }
-}
+(function main() {
+	log('[VisionixAI] [ENTER] postinstall main');
+	log(`[VisionixAI] CWD: ${process.cwd()}`);
+	log(`[VisionixAI] Log file: ${getLogFilePath()}`);
+	log('[VisionixAI] WARNING: Python dependency installation can take several minutes. Please be patient.');
 
-function printPythonPipInstructions() {
-    flushLog(`[VisionixAI] [ENTER] printPythonPipInstructions`);
-    flushLog(`\n[VisionixAI] ❌ Python and pip are required to install ML dependencies.\n`);
-    flushLog(`[VisionixAI] Please install Python (https://www.python.org/downloads/) and ensure pip is available in your PATH.\n`);
-    flushLog(`[VisionixAI] After installing, run the following command to finish setup:`);
-    flushLog(`    pip install -r <path-to-requirements.txt>\n`);
-    flushLog(`[VisionixAI] [EXIT] printPythonPipInstructions`);
-}
+	log('[VisionixAI] Checking for Python and pip...');
+	const pythonInvoker = resolveFirstSuccessful([
+		{ cmd: 'python --version', desc: 'Python version' },
+		{ cmd: 'python3 --version', desc: 'Python3 version' },
+		{ cmd: 'py -3 --version', desc: 'Windows Python Launcher (py -3) version' },
+	]);
+	const pipOk = tryCommand('pip --version', 'pip version') || tryCommand('pip3 --version', 'pip3 version') || (pythonInvoker ? tryCommand(`${pythonInvoker.replace(' --version', '')} -m pip --version`, 'python -m pip version') : false);
+	log(`[VisionixAI] pythonInvoker: ${pythonInvoker || 'not found'}`);
+	log(`[VisionixAI] pipPresent: ${pipOk}`);
 
+	const reqPath = path.resolve(__dirname, '../ml-core/requirements.txt');
+	if (!pythonInvoker || !pipOk) {
+		logErr('[VisionixAI] Python or pip not found.');
+		printPythonPipInstructions(reqPath);
+		log('[VisionixAI] [EXIT] postinstall main');
+		process.exit(1);
+	}
 
-flushLog('[VisionixAI] [ENTER] postinstall main');
-flushLog(`[VisionixAI] CWD: ${process.cwd()}`);
-flushLog(`[VisionixAI] Log file: ${logFile}`);
-flushLog('[VisionixAI] NOTE: Installing Python dependencies (like opencv-python, mediapipe) can take several minutes depending on your internet speed. Please be patient.');
-flushLog('[VisionixAI] Checking for Python and pip...');
-const hasPython = tryCommand('python --version', 'Python version') || tryCommand('python3 --version', 'Python3 version');
-flushLog(`[VisionixAI] hasPython: ${hasPython}`);
-const hasPip = tryCommand('pip --version', 'pip version') || tryCommand('pip3 --version', 'pip3 version');
-flushLog(`[VisionixAI] hasPip: ${hasPip}`);
+	log('[VisionixAI] Installing ML Python dependencies...');
+	log(`[VisionixAI] Requirements: ${reqPath}`);
 
-if (!hasPython || !hasPip) {
-    flushLog('[VisionixAI] Python or pip not found. Exiting.');
-    printPythonPipInstructions();
-    flushLog('[VisionixAI] [EXIT] postinstall main');
-    process.exit(1);
-}
+	let installed = false;
 
-flushLog('[VisionixAI] Python and pip found. Installing ML dependencies...');
-const reqPath = path.resolve(__dirname, '../ml-core/requirements.txt');
-let installed = false;
-flushLog(`[VisionixAI] Installing requirements from: ${reqPath}`);
-if (!installed) {
-    flushLog('[VisionixAI] [BEFORE] pip install');
-    installed = tryCommand(`pip install -r "${reqPath}"`, 'pip install', 120000);
-    flushLog('[VisionixAI] [AFTER] pip install');
-}
-if (!installed) {
-    flushLog('[VisionixAI] [BEFORE] pip3 install');
-    installed = tryCommand(`pip3 install -r "${reqPath}"`, 'pip3 install', 120000);
-    flushLog('[VisionixAI] [AFTER] pip3 install');
-}
+	// Create per-user venv and install into it for consistency
+	const venvDir = getVenvDir();
+	const venvPython = getVenvPythonPath();
+	const venvPip = getVenvPipPath();
+	const inv = pythonInvoker.replace(' --version', '');
 
-if (installed) {
-    flushLog('\n[VisionixAI] ✅ Python dependencies installed!');
-} else {
-    flushLog('\n[VisionixAI] ❌ Failed to install Python dependencies. Please ensure Python and pip are installed and available in your PATH.');
-    printPythonPipInstructions();
-}
+	if (!fs.existsSync(venvDir)) {
+		log(`[VisionixAI] Creating virtual environment at: ${venvDir}`);
+		installed = tryCommand(`${inv} -m venv "${venvDir}"`, 'Create virtualenv', 5 * 60 * 1000);
+		if (!installed) {
+			logErr('[VisionixAI] Failed to create virtual environment. Falling back to system pip.');
+		}
+	}
 
-flushLog(`[VisionixAI] [EXIT] postinstall main`);
-flushLog(`\n[VisionixAI] Installation complete!\n`);
-flushLog(`[VisionixAI] CWD: ${process.cwd()}`);
-flushLog(`[VisionixAI] Log file: ${logFile}`);
+	if (fs.existsSync(venvPip)) {
+		log('[VisionixAI] Installing requirements into virtual environment...');
+		installed = tryCommand(`"${venvPip}" install -r "${reqPath}"`, 'venv pip install requirements', 15 * 60 * 1000);
+	} else {
+		// Try system pip variants
+		installed = installed || tryCommand(`pip install -r "${reqPath}"`, 'pip install requirements', 10 * 60 * 1000);
+		installed = installed || tryCommand(`pip3 install -r "${reqPath}"`, 'pip3 install requirements', 10 * 60 * 1000);
+		installed = installed || tryCommand(`${inv} -m pip install -r "${reqPath}"`, `${inv} -m pip install requirements`, 10 * 60 * 1000);
+	}
+
+	// Persist runtime config pointing to venv Python if available
+	try {
+		const rcPath = getRuntimeConfigPath();
+		const cfg = { venvPython: fs.existsSync(venvPython) ? venvPython : null };
+		fs.writeFileSync(rcPath, JSON.stringify(cfg, null, 2));
+		log(`[VisionixAI] Wrote runtime config: ${rcPath}`);
+	} catch (e) {
+		logErr('[VisionixAI] Failed to write runtime config (non-fatal).');
+	}
+
+	if (installed) {
+		log('[VisionixAI] ✅ Python dependencies installed successfully.');
+		log('[VisionixAI] You are all set!');
+	} else {
+		logErr('[VisionixAI] ❌ Failed to install Python dependencies.');
+		printPythonPipInstructions(reqPath);
+		logErr('[VisionixAI] See the log file for details.');
+	}
+
+	log('[VisionixAI] [EXIT] postinstall main');
+})();

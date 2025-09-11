@@ -73,6 +73,7 @@ node cli/bin/visionix.js analyze path/to/video.mp4
 	- Check `~/visionix_postinstall.log` for detailed logs.
 	- Ensure Python 3 and pip are installed and available in your PATH.
 	- Try installing Python dependencies manually (see above).
+	- On Windows, ensure Python was installed with "Add Python to PATH" enabled or run `py -3 -m pip install -r cli/ml-core/requirements.txt`.
 - **Input video not found?**
 	- Double-check the path you provide to `visionix analyze`.
 - **Permission errors?**
@@ -92,3 +93,9 @@ node cli/bin/visionix.js analyze path/to/video.mp4
 
 **Testing Locally:**
 - Use `npm pack` and `npm install -g ./visionix-cli-*.tgz` to test the full install process as a user would experience it.
+
+---
+
+Additional Notes:
+- The installer logs the current working directory, log file path, and entry/exit of major steps.
+- Long-running operations use timeouts to avoid hangs; re-run if interrupted.
