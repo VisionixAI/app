@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const { write, writeError, getLogFilePath } = require('./utils/logger');
+const { getRuntimeConfigPath } = require('./utils/paths');
 
 const args = process.argv.slice(2);
 
@@ -13,6 +15,21 @@ if (args.length < 1 || args.includes('--help')) {
 
 const command = args[0];
 const input = args[1];
+
+function resolvePython() {
+  // Prefer venv Python if configured
+  try {
+    const rc = JSON.parse(fs.readFileSync(getRuntimeConfigPath(), 'utf8'));
+    if (rc && rc.venvPython) {
+      try { execSync(`"${rc.venvPython}" --version`, { stdio: 'ignore', timeout: 5000 }); return `"${rc.venvPython}"`; } catch (_) {}
+    }
+  } catch (_) {}
+  const candidates = ['python3', 'python', 'py -3'];
+  for (const c of candidates) {
+    try { execSync(`${c} --version`, { stdio: 'ignore', timeout: 5000 }); return c; } catch (_) {}
+  }
+  return null;
+}
 
 if (command === 'analyze') {
   const scriptPath = path.resolve(__dirname, '..', 'ml-core', 'start.py');
@@ -50,7 +67,18 @@ if (command === 'analyze') {
   }
 
   startSpinner();
-  const subprocess = spawn('python3', ['-u', scriptPath, input], {
+  const py = resolvePython();
+  if (!py) {
+    stopSpinner();
+    console.error('❌ Python not found.');
+    console.error('➡️  Please install Python 3 and ensure it is in your PATH.');
+    console.error(`📝 See logs: ${getLogFilePath()}`);
+    process.exit(1);
+  }
+  const pyParts = py.split(' ');
+  const pyCmd = pyParts[0];
+  const pyArgs = pyParts.slice(1).concat(['-u', scriptPath, input]);
+  const subprocess = spawn(pyCmd, pyArgs, {
     stdio: 'inherit'
   });
 
