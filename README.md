@@ -11,44 +11,84 @@ VisionixAI is a computer vision platform for detecting presence in room zones an
 - `cli/` — Node.js CLI tool for interacting with the system
 - `ml-core/` — Python-based computer vision core
 
-## Setup
 
-### 1. Install CLI dependencies
+## Quick Start (Production Install)
+
+### Prerequisites
+- Node.js (for CLI)
+- Python 3.7+ and pip (for ML core)
+
+### Global Install (Recommended)
+```bash
+npm install -g @visionix/cli
+```
+This will:
+- Install the CLI globally as `visionix`
+- Automatically install all required Python dependencies (OpenCV, MediaPipe, etc.)
+- Write detailed install logs to `~/visionix_postinstall.log`
+
+> **Note:** Python dependency installation may take several minutes depending on your internet speed.
+
+### Local Development/Testing
 ```bash
 cd cli
 npm install
+npm pack
+npm install -g ./visionix-cli-*.tgz
 ```
 
-### 2. (Optional) Link CLI globally
+### Manual Python Dependency Install (if needed)
+If the postinstall step fails, run:
 ```bash
-npm link
-```
-
-### 3. Install Python dependencies
-```bash
-cd ../ml-core
-pip install -r requirements.txt
+pip3 install -r cli/ml-core/requirements.txt
 ```
 
 ## Usage
 
-### Run the CLI (analyze a video file)
+
+## Usage
+
+### Analyze a video file
 ```bash
 visionix analyze path/to/video.mp4
 ```
+
 Or, if not linked globally:
 ```bash
-node bin/visionix.js analyze path/to/video.mp4
+node cli/bin/visionix.js analyze path/to/video.mp4
 ```
+
+### What to expect
+- The CLI will show a spinner/progress indicator while analyzing.
+- On success, you'll see a completion message.
+- On error, you'll get a clear message and troubleshooting hints.
 
 ### What happens?
 - The CLI calls the Python ML core, which processes the video, divides it into zones, and prints ON/OFF triggers for each zone based on presence.
 
-## Requirements
-- Node.js (for CLI)
-- Python 3.7+ (for ML core)
-- OpenCV, MediaPipe (installed via requirements.txt)
+
+## Troubleshooting
+
+- **Install stuck or fails?**
+	- Check `~/visionix_postinstall.log` for detailed logs.
+	- Ensure Python 3 and pip are installed and available in your PATH.
+	- Try installing Python dependencies manually (see above).
+- **Input video not found?**
+	- Double-check the path you provide to `visionix analyze`.
+- **Permission errors?**
+	- Try running the install with elevated permissions (e.g., `sudo`).
+- **Still stuck?**
+	- Open an issue and attach your `visionix_postinstall.log`.
+
 
 ## Development
 - Add new features to `ml-core/app.py` and expose them via the CLI.
 - See `ml-core/README.md` for ML core details.
+
+---
+
+**Logs:**
+- All install logs are written to `~/visionix_postinstall.log` for easy debugging.
+
+**Testing Locally:**
+- Use `npm pack` and `npm install -g ./visionix-cli-*.tgz` to test the full install process as a user would experience it.
