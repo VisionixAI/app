@@ -6,5 +6,3 @@ console.log(`
     
     🛠  This will install Python dependencies inside a virtual environment.
 `);
-    
-
