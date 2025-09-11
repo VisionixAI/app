@@ -9,7 +9,17 @@ const { getRuntimeConfigPath } = require('./utils/paths');
 const args = process.argv.slice(2);
 
 if (args.length < 1 || args.includes('--help')) {
-  console.log(`\nVisionixAI CLI\n\nUsage:\n  visionix analyze <video-path>\n\nDescription:\n  Streams video, detects presence in zones, triggers responses.\n\nOptions:\n  --help        Show this help message\n`);
+  console.log(`
+__     ___     _             _           _    ___ 
+\ \   / (_)___(_) ___  _ __ (_)_  __    / \  |_ _|
+ \ \ / /| / __| |/ _ \| '_ \| \ \/ /   / _ \  | | 
+  \ V / | \__ \ | (_) | | | | |>  <   / ___ \ | | 
+   \_/  |_|___/_|\___/|_| |_|_/_/\_\ /_/   \_\___|
+
+  VISIONIX AI CLI
+
+  Welcome to Visionix AI's CLI Tool! Welcome to the future without Switches!
+  `);
   process.exit(0);
 }
 
